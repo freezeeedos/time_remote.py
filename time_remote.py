@@ -1,0 +1,147 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+from BaseHTTPServer import BaseHTTPRequestHandler,HTTPServer
+import shlex, subprocess, cgi, sys, codecs, threading, time, locale, os
+import RPi.GPIO as GPIO
+
+PORT_NUMBER = 8080
+
+howmany = "#Pics"
+interval = "Interval"
+
+lockfile="/tmp/tmshoot.lock"
+logfile="/tmp/shootlog"
+
+css = '''<style type='text/css'>
+body{background:white;overflow:auto}
+input{font-size: 100px;text-align:center;width:100%;height:120px;-webkit-border-radius: 10px 10px 10px 10px; border-radius: 10px 10px 10px 10px;-webkit-box-shadow: 0px 0px 3px 0px #000000; box-shadow: 0px 0px 3px 0px #000000;}
+.submit{background: #6db3f2; /* Old browsers */background: -moz-linear-gradient(top, #6db3f2 0%, #54a3ee 50%, #3690f0 51%, #1e69de 100%); /* FF3.6+ */background: -webkit-gradient(linear, left top, left bottom, color-stop(0%,#6db3f2), color-stop(50%,#54a3ee), color-stop(51%,#3690f0), color-stop(100%,#1e69de)); /* Chrome,Safari4+ */background: -webkit-linear-gradient(top, #6db3f2 0%,#54a3ee 50%,#3690f0 51%,#1e69de 100%); /* Chrome10+,Safari5.1+ */background: -o-linear-gradient(top, #6db3f2 0%,#54a3ee 50%,#3690f0 51%,#1e69de 100%); /* Opera 11.10+ */background: -ms-linear-gradient(top, #6db3f2 0%,#54a3ee 50%,#3690f0 51%,#1e69de 100%); /* IE10+ */background: linear-gradient(to bottom, #6db3f2 0%,#54a3ee 50%,#3690f0 51%,#1e69de 100%); /* W3C */filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#6db3f2', endColorstr='#1e69de',GradientType=0 ); /* IE6-9 */}
+.text{color: #1e69de;}
+</style>
+'''
+
+script = '''<script type='text/javascript'>
+function initForm(oForm, element_name, init_txt)
+{
+    frmElement = oForm.elements[element_name];
+    frmElement.value = init_txt;
+}
+function clearFieldFirstTime(element)
+{    
+    if(element.counter==undefined)
+    {
+        element.counter = 1;
+    }
+    else
+    {
+        element.counter++;
+    }
+ 
+    if (element.counter == 1)
+    {
+        element.value = '';
+    }
+}
+function fillfields(howmany_val, interval_val)
+{
+    initForm(document.forms[0], 'howmany', howmany_val);
+    initForm(document.forms[0], 'interval', interval_val);
+}
+</script>'''
+
+#This class will handles any incoming request from
+#the browser 
+class myHandler(BaseHTTPRequestHandler):
+    #Handler for the GET requests
+    def do_GET(self):
+        global howmany
+        global interval
+        if self.path=="/":
+
+            html = "<html>"
+            html +='''<body onload="fillfields('%s', '%s');">\n''' % (howmany, interval)
+            html += '''<head>%s</head>\n''' % script
+            html += '''<div class='form'>
+<form method='POST'>
+<br/><input class=text name='howmany' onfocus='clearFieldFirstTime(this);'></input><br/>
+<br/><input class=text name='interval' onfocus='clearFieldFirstTime(this);'</input><br/>
+<br/><br/><input type='submit' class='submit' value='Launch'></input>
+</form>
+</div>
+</body>
+</html>'''
+            self.send_response(200)
+            self.send_header('Content-type', 'text/html')
+            self.end_headers()
+            self.wfile.write(css)
+            self.wfile.write(html)
+            
+
+    #Handler for the POST requests
+    def do_POST(self):
+        global howmany
+        global interval
+        form = cgi.FieldStorage(
+            fp=self.rfile, 
+            headers=self.headers,
+            environ={'REQUEST_METHOD':'POST',
+                     'CONTENT_TYPE':self.headers['Content-Type'],
+        })
+
+        howmany = form.getvalue("howmany")
+        interval = form.getvalue("interval")
+        if ("howmany" in form) and ("interval" in form) and ((self.check_if_int(howmany) == True) and (self.check_if_int(interval) == True)):
+            self.shoot_thread(int(howmany), int(interval))
+        else:
+            howmany = "#Pics"
+            interval = "Interval"
+        self.do_GET()
+        return
+
+    def check_if_int(self, val):
+        try:
+            int(val)
+            return True
+        except ValueError:
+            return False
+
+    def shoot_thread(self, howmany, interval):
+        if os.path.exists( lockfile ) == False:
+            thread1 = threading.Thread( target=self.shoot, args=(howmany, interval))
+            thread1.start()
+
+    def shoot(self, howmany, interval):
+        print "going for %d pictures" % howmany
+	lockhandle = open(lockfile, "w")
+	lockhandle.close()
+        GPIO.setwarnings(False)
+        GPIO.setmode(GPIO.BOARD)
+        GPIO.setup(16, GPIO.OUT)
+        for i in range(howmany):
+            print "Picture #%d" % (i+1)
+            self.gpio_sig()
+            if interval > 0:
+                time.sleep((interval))
+	os.remove(lockfile)
+        GPIO.cleanup()
+
+    def gpio_sig(self):
+        GPIO.output(16, 1)
+        time.sleep(1)
+        GPIO.output(16, 0)
+        return
+
+try:
+    #Create a web server and define the handler to manage the
+    #incoming request
+    server = HTTPServer(('', PORT_NUMBER), myHandler)
+    print 'Started httpserver on port ' , PORT_NUMBER
+    
+    #Wait forever for incoming http requests
+    server.serve_forever()
+
+except KeyboardInterrupt:
+    print '\nShutting down the web server...'
+    if os.path.exists( lockfile ) == True:
+        os.remove(lockfile)
+    server.socket.close()
