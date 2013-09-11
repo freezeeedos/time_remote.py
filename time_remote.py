@@ -8,6 +8,7 @@ PORT_NUMBER = 8080
 
 howmany = "#Pics"
 interval = "Interval"
+shut_dur = "Open shutter (s)"
 
 lockfile="/tmp/tmshoot.lock"
 logfile="/tmp/shootlog"
@@ -42,10 +43,11 @@ function clearFieldFirstTime(element)
         element.value = '';
     }
 }
-function fillfields(howmany_val, interval_val)
+function fillfields(howmany_val, interval_val, shut_dur_val)
 {
     initForm(document.forms[0], 'howmany', howmany_val);
     initForm(document.forms[0], 'interval', interval_val);
+    initForm(document.forms[0], 'shut_dur', shut_dur_val);
 }
 </script>'''
 
@@ -56,15 +58,17 @@ class myHandler(BaseHTTPRequestHandler):
     def do_GET(self):
         global howmany
         global interval
+        global shut_dur
         if self.path=="/":
 
             html = "<html>"
-            html +='''<body onload="fillfields('%s', '%s');">\n''' % (howmany, interval)
+            html +='''<body onload="fillfields('%s', '%s', '%s');">\n''' % (howmany, interval, shut_dur)
             html += '''<head>%s</head>\n''' % script
             html += '''<div class='form'>
 <form method='POST'>
 <br/><input class=text name='howmany' onfocus='clearFieldFirstTime(this);'></input><br/>
 <br/><input class=text name='interval' onfocus='clearFieldFirstTime(this);'</input><br/>
+<br/><input class=text name='shut_dur' onfocus='clearFieldFirstTime(this);'</input><br/>
 <br/><br/><input type='submit' class='submit' value='Launch'></input>
 </form>
 </div>
@@ -81,6 +85,7 @@ class myHandler(BaseHTTPRequestHandler):
     def do_POST(self):
         global howmany
         global interval
+        global shut_dur
         form = cgi.FieldStorage(
             fp=self.rfile, 
             headers=self.headers,
@@ -90,11 +95,13 @@ class myHandler(BaseHTTPRequestHandler):
 
         howmany = form.getvalue("howmany")
         interval = form.getvalue("interval")
-        if ("howmany" in form) and ("interval" in form) and ((self.check_if_int(howmany) == True) and (self.check_if_int(interval) == True)):
-            self.shoot_thread(int(howmany), int(interval))
+        shut_dur = form.getvalue("shut_dur")
+        if ("howmany" in form) and ("interval" in form) and ("shut_dur" in form) and ((self.check_if_int(howmany) == True) and (self.check_if_int(interval) == True) and (self.check_if_int(shut_dur) == True)):
+            self.shoot_thread(int(howmany), int(interval), int(shut_dur))
         else:
             howmany = "#Pics"
             interval = "Interval"
+            shut_dur = "Open shutter (s)"
         self.do_GET()
         return
 
@@ -105,29 +112,34 @@ class myHandler(BaseHTTPRequestHandler):
         except ValueError:
             return False
 
-    def shoot_thread(self, howmany, interval):
+    def shoot_thread(self, howmany, interval, shut_dur):
         if os.path.exists( lockfile ) == False:
-            thread1 = threading.Thread( target=self.shoot, args=(howmany, interval))
+            thread1 = threading.Thread( target=self.shoot, args=(howmany, interval, shut_dur))
             thread1.start()
 
-    def shoot(self, howmany, interval):
+    def shoot(self, howmany, interval, shut_dur):
         print "going for %d pictures" % howmany
-	lockhandle = open(lockfile, "w")
-	lockhandle.close()
+        lockhandle = open(lockfile, "w")
+        lockhandle.close()
         GPIO.setwarnings(False)
         GPIO.setmode(GPIO.BOARD)
         GPIO.setup(16, GPIO.OUT)
         for i in range(howmany):
             print "Picture #%d" % (i+1)
-            self.gpio_sig()
-            if interval > 0:
-                time.sleep((interval))
-	os.remove(lockfile)
+            self.gpio_sig(shut_dur)
+            if interval < 1:
+                interval = 1
+            time.sleep(interval)
+        os.remove(lockfile)
         GPIO.cleanup()
+        return
 
-    def gpio_sig(self):
+    def gpio_sig(self, shut_dur):
+        if shut_dur < 1:
+            shut_dur = 1
+        print "Opening shutter for %d s" % shut_dur
         GPIO.output(16, 1)
-        time.sleep(1)
+        time.sleep(shut_dur)
         GPIO.output(16, 0)
         return
 
