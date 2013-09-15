@@ -4,7 +4,7 @@ from BaseHTTPServer import BaseHTTPRequestHandler,HTTPServer
 import shlex, subprocess, cgi, sys, codecs, threading, time, locale, os
 import RPi.GPIO as GPIO
 
-PORT_NUMBER = 8080
+PORT_NUMBER = 8081
 
 howmany = "#Pics"
 interval = "Interval"
@@ -12,16 +12,21 @@ shut_dur = "Open shutter (s)"
 
 lockfile="/tmp/tmshoot.lock"
 logfile="/tmp/shootlog"
+pic_num = 0
+html = ""
 
 css = '''<style type='text/css'>
 body{background:white;overflow:auto}
-input{font-size: 100px;text-align:center;width:100%;height:120px;-webkit-border-radius: 10px 10px 10px 10px; border-radius: 10px 10px 10px 10px;-webkit-box-shadow: 0px 0px 3px 0px #000000; box-shadow: 0px 0px 3px 0px #000000;}
-.submit{background: #6db3f2; /* Old browsers */background: -moz-linear-gradient(top, #6db3f2 0%, #54a3ee 50%, #3690f0 51%, #1e69de 100%); /* FF3.6+ */background: -webkit-gradient(linear, left top, left bottom, color-stop(0%,#6db3f2), color-stop(50%,#54a3ee), color-stop(51%,#3690f0), color-stop(100%,#1e69de)); /* Chrome,Safari4+ */background: -webkit-linear-gradient(top, #6db3f2 0%,#54a3ee 50%,#3690f0 51%,#1e69de 100%); /* Chrome10+,Safari5.1+ */background: -o-linear-gradient(top, #6db3f2 0%,#54a3ee 50%,#3690f0 51%,#1e69de 100%); /* Opera 11.10+ */background: -ms-linear-gradient(top, #6db3f2 0%,#54a3ee 50%,#3690f0 51%,#1e69de 100%); /* IE10+ */background: linear-gradient(to bottom, #6db3f2 0%,#54a3ee 50%,#3690f0 51%,#1e69de 100%); /* W3C */filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#6db3f2', endColorstr='#1e69de',GradientType=0 ); /* IE6-9 */}
-.text{color: #1e69de;}
+input{width:100%;height:120px;-webkit-border-radius: 10px 10px 10px 10px; border-radius: 10px 10px 10px 10px;-webkit-box-shadow: 0px 0px 3px 0px #000000; box-shadow: 0px 0px 3px 0px #000000;}
+.submit{font-size: 100px;text-align:center;background: #6db3f2; /* Old browsers */background: -moz-linear-gradient(top, #6db3f2 0%, #54a3ee 50%, #3690f0 51%, #1e69de 100%); /* FF3.6+ */background: -webkit-gradient(linear, left top, left bottom, color-stop(0%,#6db3f2), color-stop(50%,#54a3ee), color-stop(51%,#3690f0), color-stop(100%,#1e69de)); /* Chrome,Safari4+ */background: -webkit-linear-gradient(top, #6db3f2 0%,#54a3ee 50%,#3690f0 51%,#1e69de 100%); /* Chrome10+,Safari5.1+ */background: -o-linear-gradient(top, #6db3f2 0%,#54a3ee 50%,#3690f0 51%,#1e69de 100%); /* Opera 11.10+ */background: -ms-linear-gradient(top, #6db3f2 0%,#54a3ee 50%,#3690f0 51%,#1e69de 100%); /* IE10+ */background: linear-gradient(to bottom, #6db3f2 0%,#54a3ee 50%,#3690f0 51%,#1e69de 100%); /* W3C */filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#6db3f2', endColorstr='#1e69de',GradientType=0 ); /* IE6-9 */}
+.text{color: #1e69de;font-size: 100px;text-align:center;}
+.count{color: #1e69de;font-size: 200px;text-align:center;}
+.frame{border-width: 0px; height:250px; overflow:auto;}
+.fdiv{outline: 5px dotted #1e69de;-webkit-border-radius: 10px 10px 10px 10px;border-radius: 10px 10px 10px 10px;}
 </style>
 '''
 
-script = '''<script type='text/javascript'>
+script = '''
 function initForm(oForm, element_name, init_txt)
 {
     frmElement = oForm.elements[element_name];
@@ -49,7 +54,7 @@ function fillfields(howmany_val, interval_val, shut_dur_val)
     initForm(document.forms[0], 'interval', interval_val);
     initForm(document.forms[0], 'shut_dur', shut_dur_val);
 }
-</script>'''
+'''
 
 #This class will handles any incoming request from
 #the browser 
@@ -59,26 +64,38 @@ class myHandler(BaseHTTPRequestHandler):
         global howmany
         global interval
         global shut_dur
+        global html
         if self.path=="/":
-
             html = "<html>"
-            html +='''<body onload="fillfields('%s', '%s', '%s');">\n''' % (howmany, interval, shut_dur)
-            html += '''<head>%s</head>\n''' % script
+            html +='''<body onload="onload()">\n'''
+            html += '''<head><script type='text/javascript'>
+%s
+function onload()
+{
+    fillfields('%s', '%s', '%s');
+    startInterval();
+}
+</script></head>\n''' % (script, howmany, interval, shut_dur)
             html += '''<div class='form'>
 <form method='POST'>
 <br/><input class=text name='howmany' onfocus='clearFieldFirstTime(this);'></input><br/>
-<br/><input class=text name='interval' onfocus='clearFieldFirstTime(this);'</input><br/>
-<br/><input class=text name='shut_dur' onfocus='clearFieldFirstTime(this);'</input><br/>
+<br/><input class=text name='interval' onfocus='clearFieldFirstTime(this);'></input><br/>
+<br/><input class=text name='shut_dur' onfocus='clearFieldFirstTime(this);'></input><br/>
 <br/><br/><input type='submit' class='submit' value='Launch'></input>
 </form>
 </div>
+<br/><center><div class=fdiv ><iframe class=frame src='/feedback' scrolling=no></iframe></div></center>
 </body>
 </html>'''
-            self.send_response(200)
-            self.send_header('Content-type', 'text/html')
-            self.end_headers()
-            self.wfile.write(css)
-            self.wfile.write(html)
+
+        if self.path=="/feedback":
+            html = '''<html><head><META HTTP-EQUIV="refresh" CONTENT="0"></head><body><p class=count >%d</p></body></html>''' % pic_num
+
+        self.send_response(200)
+        self.send_header('Content-type', 'text/html')
+        self.end_headers()
+        self.wfile.write(css)
+        self.wfile.write(html)
             
 
     #Handler for the POST requests
@@ -118,6 +135,7 @@ class myHandler(BaseHTTPRequestHandler):
             thread1.start()
 
     def shoot(self, howmany, interval, shut_dur):
+        global pic_num
         print "going for %d pictures" % howmany
         lockhandle = open(lockfile, "w")
         lockhandle.close()
@@ -126,6 +144,7 @@ class myHandler(BaseHTTPRequestHandler):
         GPIO.setup(16, GPIO.OUT)
         for i in range(howmany):
             print "Picture #%d" % (i+1)
+            pic_num = (i+1)
             self.gpio_sig(shut_dur)
             if interval < 1:
                 interval = 1
