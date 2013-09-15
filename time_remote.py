@@ -22,7 +22,6 @@ input{width:100%;height:120px;-webkit-border-radius: 10px 10px 10px 10px; border
 .text{color: #1e69de;font-size: 100px;text-align:center;}
 .count{color: #1e69de;font-size: 200px;text-align:center;}
 .frame{border-width: 0px; height:250px; overflow:auto;}
-.fdiv{outline: 5px dotted #1e69de;-webkit-border-radius: 10px 10px 10px 10px;border-radius: 10px 10px 10px 10px;}
 </style>
 '''
 
@@ -84,7 +83,7 @@ function onload()
 <br/><br/><input type='submit' class='submit' value='Launch'></input>
 </form>
 </div>
-<br/><center><div class=fdiv ><iframe class=frame src='/feedback' scrolling=no></iframe></div></center>
+<br/><center><iframe class=frame src='/feedback' scrolling=no></iframe></center>
 </body>
 </html>'''
 
