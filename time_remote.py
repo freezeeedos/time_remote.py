@@ -88,7 +88,12 @@ function onload()
 </html>'''
 
         if self.path=="/feedback":
-            html = '''<html><head><META HTTP-EQUIV="refresh" CONTENT="0"></head><body><p class=count >%d</p></body></html>''' % pic_num
+            if(self.check_if_int(howmany) == False):
+                html = '''<html><head></head><body><p class=count >%d</p></body></html>''' % pic_num
+            elif (pic_num - 1) == (int(howmany) - 1):
+                html = '''<html><head></head><body><p class=count >%d</p></body></html>''' % pic_num
+            else:
+                html = '''<html><head><META HTTP-EQUIV="refresh" CONTENT="0"></head><body><p class=count >%d</p></body></html>''' % pic_num
 
         self.send_response(200)
         self.send_header('Content-type', 'text/html')
