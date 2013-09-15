@@ -17,7 +17,7 @@ html = ""
 
 css = '''<style type='text/css'>
 body{background:white;overflow:auto}
-input{width:100%;height:120px;-webkit-border-radius: 10px 10px 10px 10px; border-radius: 10px 10px 10px 10px;-webkit-box-shadow: 0px 0px 3px 0px #000000; box-shadow: 0px 0px 3px 0px #000000;}
+input{border-width: 0px;width:100%;height:120px;-webkit-border-radius: 10px 10px 10px 10px; border-radius: 10px 10px 10px 10px;-webkit-box-shadow: 0px 0px 3px 0px #000000; box-shadow: 0px 0px 3px 0px #000000;}
 .submit{font-size: 100px;text-align:center;background: #6db3f2; /* Old browsers */background: -moz-linear-gradient(top, #6db3f2 0%, #54a3ee 50%, #3690f0 51%, #1e69de 100%); /* FF3.6+ */background: -webkit-gradient(linear, left top, left bottom, color-stop(0%,#6db3f2), color-stop(50%,#54a3ee), color-stop(51%,#3690f0), color-stop(100%,#1e69de)); /* Chrome,Safari4+ */background: -webkit-linear-gradient(top, #6db3f2 0%,#54a3ee 50%,#3690f0 51%,#1e69de 100%); /* Chrome10+,Safari5.1+ */background: -o-linear-gradient(top, #6db3f2 0%,#54a3ee 50%,#3690f0 51%,#1e69de 100%); /* Opera 11.10+ */background: -ms-linear-gradient(top, #6db3f2 0%,#54a3ee 50%,#3690f0 51%,#1e69de 100%); /* IE10+ */background: linear-gradient(to bottom, #6db3f2 0%,#54a3ee 50%,#3690f0 51%,#1e69de 100%); /* W3C */filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#6db3f2', endColorstr='#1e69de',GradientType=0 ); /* IE6-9 */}
 .text{color: #1e69de;font-size: 100px;text-align:center;}
 .count{color: #1e69de;font-size: 200px;text-align:center;}
