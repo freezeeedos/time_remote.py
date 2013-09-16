@@ -21,7 +21,6 @@ input{border-width: 0px;width:100%;height:120px;-webkit-border-radius: 10px 10px
 .submit{font-size: 100px;text-align:center;background: #6db3f2; /* Old browsers */background: -moz-linear-gradient(top, #6db3f2 0%, #54a3ee 50%, #3690f0 51%, #1e69de 100%); /* FF3.6+ */background: -webkit-gradient(linear, left top, left bottom, color-stop(0%,#6db3f2), color-stop(50%,#54a3ee), color-stop(51%,#3690f0), color-stop(100%,#1e69de)); /* Chrome,Safari4+ */background: -webkit-linear-gradient(top, #6db3f2 0%,#54a3ee 50%,#3690f0 51%,#1e69de 100%); /* Chrome10+,Safari5.1+ */background: -o-linear-gradient(top, #6db3f2 0%,#54a3ee 50%,#3690f0 51%,#1e69de 100%); /* Opera 11.10+ */background: -ms-linear-gradient(top, #6db3f2 0%,#54a3ee 50%,#3690f0 51%,#1e69de 100%); /* IE10+ */background: linear-gradient(to bottom, #6db3f2 0%,#54a3ee 50%,#3690f0 51%,#1e69de 100%); /* W3C */filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#6db3f2', endColorstr='#1e69de',GradientType=0 ); /* IE6-9 */}
 .text{color: #1e69de;font-size: 100px;text-align:center;}
 .count{color: #1e69de;font-size: 200px;text-align:center;}
-.frame{border-width: 0px; height:250px; width:100%; overflow:auto;}
 </style>
 '''
 
@@ -53,6 +52,14 @@ function fillfields(howmany_val, interval_val, shut_dur_val)
     initForm(document.forms[0], 'interval', interval_val);
     initForm(document.forms[0], 'shut_dur', shut_dur_val);
 }
+    if (typeof (EventSource) !== "undefined") {
+        var source = new EventSource('/feedback');
+        source.onmessage = function (e) {
+            document.getElementById("test").innerHTML = e.data;
+        };
+    } else {
+        document.getElementById("test").innerHTML = "Your browser does not support Server Sent Events.";
+    }
 '''
 
 #This class will handles any incoming request from
@@ -65,41 +72,40 @@ class myHandler(BaseHTTPRequestHandler):
         global shut_dur
         global html
         if self.path=="/":
-            html = "<html>"
-            html +='''<body onload="onload()">\n'''
+            html = "<!DOCTYPE html><html>"
+            html +='''<body>\n'''
             html += '''<head><script type='text/javascript'>
 %s
-function onload()
-{
-    fillfields('%s', '%s', '%s');
-    startInterval();
-}
-</script></head>\n''' % (script, howmany, interval, shut_dur)
-            html += '''<div class='form'>
+</script></head>
+<div class='form'>
 <form method='POST'>
-<br/><input class=text name='howmany' onfocus='clearFieldFirstTime(this);'></input><br/>
-<br/><input class=text name='interval' onfocus='clearFieldFirstTime(this);'></input><br/>
-<br/><input class=text name='shut_dur' onfocus='clearFieldFirstTime(this);'></input><br/>
+<br/><input class=text name='howmany' onfocus='clearFieldFirstTime(this);' value='%s'></input><br/>
+<br/><input class=text name='interval' onfocus='clearFieldFirstTime(this);' value='%s'></input><br/>
+<br/><input class=text name='shut_dur' onfocus='clearFieldFirstTime(this);' value='%s'></input><br/>
 <br/><br/><input type='submit' class='submit' value='Launch'></input>
 </form>
 </div>
-<br/><center><iframe class=frame src='/feedback' scrolling=no></iframe></center>
+<p class='count' id='test'></p>
 </body>
-</html>'''
+</html>''' % (script, howmany, interval, shut_dur)
+            self.send_response(200)
+            self.send_header('Content-type', 'text/html')
+            self.end_headers()
+            self.wfile.write(css)
+            self.wfile.write(html)
 
         if self.path=="/feedback":
-            if(self.check_if_int(howmany) == False):
-                html = '''<html><head></head><body><p class=count >%d</p></body></html>''' % pic_num
-            elif (pic_num - 1) == (int(howmany) - 1):
-                html = '''<html><head></head><body><p class=count >%d</p></body></html>''' % pic_num
-            else:
-                html = '''<html><head><META HTTP-EQUIV="refresh" CONTENT="0"></head><body><p class=count >%d</p></body></html>''' % pic_num
+            html = '''Event: message\n'''
+            html += '''retry: 0\n'''
+            html += '''data: %d\n\n''' % pic_num
+            self.send_response(200)
+            self.send_header('Content-type','text/event-stream')
+            self.send_header('Cache-control', 'no-cache')
+            self.send_header('Connexion', 'keep-alive')
+            self.end_headers()
+            self.wfile.write(html)
+            self.wfile.flush()
 
-        self.send_response(200)
-        self.send_header('Content-type', 'text/html')
-        self.end_headers()
-        self.wfile.write(css)
-        self.wfile.write(html)
             
 
     #Handler for the POST requests
@@ -147,8 +153,8 @@ function onload()
         GPIO.setmode(GPIO.BOARD)
         GPIO.setup(16, GPIO.OUT)
         for i in range(howmany):
-            print "Picture #%d" % (i+1)
             pic_num = (i+1)
+            print "Picture #%d" % pic_num
             self.gpio_sig(shut_dur)
             if interval < 1:
                 interval = 1
