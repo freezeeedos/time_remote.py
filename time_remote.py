@@ -46,20 +46,14 @@ function clearFieldFirstTime(element)
         element.value = '';
     }
 }
-function fillfields(howmany_val, interval_val, shut_dur_val)
-{
-    initForm(document.forms[0], 'howmany', howmany_val);
-    initForm(document.forms[0], 'interval', interval_val);
-    initForm(document.forms[0], 'shut_dur', shut_dur_val);
+if (typeof (EventSource) !== "undefined") {
+    var source = new EventSource('/feedback');
+    source.onmessage = function (e) {
+        document.getElementById("test").innerHTML = e.data;
+    };
+} else {
+    document.getElementById("test").innerHTML = "Your browser does not support Server Sent Events.";
 }
-    if (typeof (EventSource) !== "undefined") {
-        var source = new EventSource('/feedback');
-        source.onmessage = function (e) {
-            document.getElementById("test").innerHTML = e.data;
-        };
-    } else {
-        document.getElementById("test").innerHTML = "Your browser does not support Server Sent Events.";
-    }
 '''
 
 #This class will handles any incoming request from
