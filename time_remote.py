@@ -16,10 +16,15 @@ pic_num = 0
 html = ""
 
 css = '''<style type='text/css'>
-body{background:white;overflow:auto}
-input{border-width: 0px;width:100%;height:120px;-webkit-border-radius: 10px 10px 10px 10px; border-radius: 10px 10px 10px 10px;-webkit-box-shadow: 0px 0px 5px #000000; box-shadow: 0px 0px 5px #000000;}
-.submit{display:block;background-color:#f7f7f7;background-image:-webkit-gradient(linear,lefttop,leftbottom,from(#f7f7f7),to(#e7e7e7));background-image:-webkit-linear-gradient(top,#f7f7f7,#e7e7e7);background-image:-moz-linear-gradient(top,#f7f7f7,#e7e7e7);background-image:-ms-linear-gradient(top,#f7f7f7,#e7e7e7);background-image:-o-linear-gradient(top,#f7f7f7,#e7e7e7);color:red;margin:36px; overflow:auto;font-size:150px;height:800px;width:800px;border:150px double #ccc;border-radius:50%;-webkit-border-radius:50%;text-align:center;background:white;-webkit-box-shadow: 0px 0px 20px #000000; box-shadow: 0px 0px 20px #000000;}
-.text{color: #1e69de;font-size: 100px;text-align:center;}
+body{background:black;overflow:auto}
+.submit{color:red;font-size:150px;font-weight:bold;height:25%;width:100%;background:white;border:solid 5px red;-webkit-border-radius: 10px 10px 10px 10px; border-radius: 10px 10px 10px 10px;}
+.submit{-moz-box-shadow:inset 0px 0px 20px red;
+-webkit-box-shadow:inset 0px 0px 20px red;
+box-shadow:inset 0px 0px 40px red;}
+.text{border:dashed 5px #1e69de;height:20%;color: #1e69de;font-size: 100px;text-align:center;width:100%;-webkit-border-radius: 10px 10px 10px 10px; border-radius: 10px 10px 10px 10px;}
+.text{-moz-box-shadow:inset 0px 0px 20px #1e69de;
+-webkit-box-shadow:inset 0px 0px 20px #1e69de;
+box-shadow:inset 0px 0px 20px #1e69de;}
 .error_events{width:100%;color: red;font-size:50px;font-weight: bold;text-align:center;}
 </style>
 '''
@@ -76,7 +81,7 @@ class myHandler(BaseHTTPRequestHandler):
 <br/><input class=text name='howmany' onfocus='clearFieldFirstTime(this);' value='%s'></input><br/>
 <br/><input class=text name='interval' onfocus='clearFieldFirstTime(this);' value='%s'></input><br/>
 <br/><input class=text name='shut_dur' onfocus='clearFieldFirstTime(this);' value='%s'></input><br/>
-<br/><br/><center><input type='submit' id='launch' class='submit' value='0'></input></center>
+<br/><input type='submit' id='launch' class='submit' value='0'></input>
 </form>
 </div>
 <br/><div class='error_events' id='error_events'></div>
