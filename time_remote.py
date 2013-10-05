@@ -152,12 +152,16 @@ class myHandler(BaseHTTPRequestHandler):
         GPIO.setmode(GPIO.BOARD)
         GPIO.setup(16, GPIO.OUT)
         for i in range(howmany):
-            pic_num = (i+1)
-            print "Picture #%d" % pic_num
-            self.gpio_sig(shut_dur)
-            if interval < 1:
-                interval = 1
-            time.sleep(interval)
+            if os.path.exists( lockfile ) == True:
+                pic_num = (i+1)
+                print "Picture #%d" % pic_num
+                self.gpio_sig(shut_dur)
+                if interval < 1:
+                    interval = 1
+                time.sleep(interval)
+            else:
+                GPIO.cleanup()
+                return
         os.remove(lockfile)
         GPIO.cleanup()
         return
