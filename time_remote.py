@@ -89,6 +89,7 @@ class myHandler(BaseHTTPRequestHandler):
 </html>''' % (script, howmany, interval, shut_dur)
             self.send_response(200)
             self.send_header('Content-type', 'text/html')
+            self.send_header('Cache-control', 'no-cache')
             self.end_headers()
             self.wfile.write(css)
             self.wfile.write(html)
@@ -146,8 +147,11 @@ class myHandler(BaseHTTPRequestHandler):
     def shoot(self, howmany, interval, shut_dur):
         global pic_num
         print "going for %d pictures" % howmany
-        lockhandle = open(lockfile, "w")
-        lockhandle.close()
+        try:
+            lockhandle = open(lockfile, "w")
+            lockhandle.close()
+        except Exception, e:
+            print "Failed to open lockfile: %s" % str(e)
         GPIO.setwarnings(False)
         GPIO.setmode(GPIO.BOARD)
         GPIO.setup(16, GPIO.OUT)
@@ -162,7 +166,10 @@ class myHandler(BaseHTTPRequestHandler):
             else:
                 GPIO.cleanup()
                 return
-        os.remove(lockfile)
+        try:
+            os.remove(lockfile)
+        except Exception, e:
+            print "Failed to remove lockfile: %s" % str(e)
         GPIO.cleanup()
         return
 
@@ -187,5 +194,8 @@ try:
 except KeyboardInterrupt:
     print '\nShutting down the web server...'
     if os.path.exists( lockfile ) == True:
-        os.remove(lockfile)
+        try:
+            os.remove(lockfile)
+        except Exception, e:
+            print "Failed to remove lockfile: %s" % str(e)
     server.socket.close()
