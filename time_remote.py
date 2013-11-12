@@ -3,6 +3,8 @@
 from BaseHTTPServer import BaseHTTPRequestHandler,HTTPServer
 import shlex, subprocess, cgi, sys, codecs, threading, time, locale, os
 import RPi.GPIO as GPIO
+from SocketServer import ThreadingMixIn
+import threading
 
 PORT_NUMBER = 8081
 
@@ -73,7 +75,7 @@ class myHandler(BaseHTTPRequestHandler):
         if self.path=="/":
             html = "<!DOCTYPE html><html>"
             html +='''<body>\n'''
-            html += '''<head><script type='text/javascript'>
+            html += '''<head><title>Timelapse Remote</title><script type='text/javascript'>
 %s
 </script></head>
 <div class='form'>
@@ -182,10 +184,13 @@ class myHandler(BaseHTTPRequestHandler):
         GPIO.output(16, 0)
         return
 
+class ThreadedHTTPServer(ThreadingMixIn, HTTPServer):
+    """Handle requests in a separate thread."""
+
 try:
     #Create a web server and define the handler to manage the
     #incoming request
-    server = HTTPServer(('', PORT_NUMBER), myHandler)
+    server = ThreadedHTTPServer(('', PORT_NUMBER), myHandler)
     print 'Started httpserver on port ' , PORT_NUMBER
     
     #Wait forever for incoming http requests
