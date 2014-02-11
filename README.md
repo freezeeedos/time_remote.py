@@ -1,4 +1,6 @@
 time_remote.py
 ==============
 
-Code to control my digital camera from a web interface on the raspberry pi
+Raspberry Pi GPIO code to control my digital camera from a web interface on my phone.
+
+I use it to shoot timelapses.
